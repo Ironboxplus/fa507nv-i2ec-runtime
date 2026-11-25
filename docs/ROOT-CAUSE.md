@@ -30,3 +30,10 @@ sequence returned `0x00` for `0x200D`, `0x2012`, `0x2014`, `0x2015`, `0x1604`,
 and known telemetry addresses. This is a transport-availability failure on
 this firmware instance, so the runtime writer remains disabled; it is not
 evidence that GPD0 is safe to force.
+
+The 318 image contains one direct `XRAM[0x2012]` update at EC image offset
+`0x1461c`: `MOV DPTR,#0x2012; MOVX A,@DPTR; ORL A,#0x20; MOVX @DPTR,A`.
+The local register map used for this board identifies the I2EC decode enable as
+bit 0, so the existing `#0x20` must not be assumed to enable I2EC. This is a
+firmware-side initialization defect candidate, not a runtime write recipe. The
+bit definition and the banked caller must be confirmed before any image edit.
