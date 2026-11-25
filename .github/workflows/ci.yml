@@ -18,6 +18,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run state machine tests
+        env:
+          PYTHONPATH: src
         run: python -m unittest discover -s tests -v
 
   static-audit:
@@ -52,7 +54,9 @@ jobs:
           mkdir -p build
           "$RUNNER_TEMP/usr/bin/pawncc" src/IT5570I2EC.p \
             -i"$RUNNER_TEMP/PawnIO/pawn/include" -C64 '-;+' '-(+' '-p'
-          cp src/IT5570I2EC.amx build/IT5570I2EC.amx
+          module=$(find . -maxdepth 2 -type f -name 'IT5570I2EC.amx' -print -quit)
+          test -n "$module"
+          cp "$module" build/IT5570I2EC.amx
       - uses: actions/upload-artifact@v4
         with:
           name: it5570-i2ec-module-${{ github.sha }}
