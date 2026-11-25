@@ -30,12 +30,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check fail-closed defaults
         run: |
+          python -m py_compile src/*.py tests/*.py
           python - <<'PY'
           from pathlib import Path
           text = Path('src/i2ec_runtime_adapter.py').read_text()
+          bridge = Path('src/i2ec_lpcio_bridge.py').read_text()
           assert '--write-gpd0' in text
           assert 'I2EC is not read-write' in text
           assert 'readback mismatch' in text
+          assert 'self.ldn = 0x14' in bridge
+          assert 'ioctl_it5570_i2ec_write' not in bridge
           print('guard checks passed')
           PY
 

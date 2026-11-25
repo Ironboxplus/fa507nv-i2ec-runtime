@@ -15,6 +15,11 @@ tests in parallel. CI never touches hardware and never contains a firmware
 flasher. A hardware probe must be run locally, elevated, with the exact module
 artifact from a pinned Actions run.
 
+On Windows, the first live read uses the already signed `LpcIO.bin` module and
+`src/i2ec_lpcio_bridge.py`. The bridge temporarily anchors the PIO whitelist
+with inactive LDN `0x14`, restores its `0x30/0x60/0x61` bytes in `finally`, and
+does not expose a write operation.
+
 ## Scope
 
 - Read `0x200D` (I2EC permission) and `0x1604` (GPD0 data byte).
