@@ -1,0 +1,60 @@
+name: i2ec-runtime
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run state machine tests
+        run: python -m unittest discover -s tests -v
+
+  static-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check fail-closed defaults
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/i2ec_runtime_adapter.py').read_text()
+          assert '--write-gpd0' in text
+          assert 'I2EC is not read-write' in text
+          assert 'readback mismatch' in text
+          print('guard checks passed')
+          PY
+
+  pawn-module:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch PawnIO compiler and headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cpio rpm2cpio
+          git clone --depth 1 https://github.com/namazso/PawnIO.git "$RUNNER_TEMP/PawnIO"
+          git clone --depth 1 https://github.com/namazso/PawnIO.Modules.git "$RUNNER_TEMP/PawnIO.Modules"
+          rpm2cpio "$RUNNER_TEMP/PawnIO.Modules/_pawn/pawn-4.1.7152-1.el9.x86_64.rpm" | cpio -idm --quiet -D "$RUNNER_TEMP"
+          chmod +x "$RUNNER_TEMP/usr/bin/pawncc"
+      - name: Compile I2EC module
+        run: |
+          mkdir -p build
+          "$RUNNER_TEMP/usr/bin/pawncc" src/IT5570I2EC.p \
+            -i"$RUNNER_TEMP/PawnIO/pawn/include" -C64 '-;+' '-(+' '-p'
+          cp src/IT5570I2EC.amx build/IT5570I2EC.amx
+      - uses: actions/upload-artifact@v4
+        with:
+          name: it5570-i2ec-module-${{ github.sha }}
+          path: build/IT5570I2EC.amx
+          retention-days: 2
