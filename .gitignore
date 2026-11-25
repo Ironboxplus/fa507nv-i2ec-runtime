@@ -1,0 +1,5 @@
+artifact-*/
+backend-test/
+build/
+__pycache__/
+*.pyc
